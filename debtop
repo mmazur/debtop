@@ -9,14 +9,33 @@ scoreboard = {}
 
 #parse
 with open(".cache/Contents-amd64") as f:
+    borkedlines = 0
     for lineno, line in enumerate(f, start=1):
-        path, locations = line.strip().rsplit(maxsplit=1)
-        # ignore optional header
+        columns = line.strip().rsplit(maxsplit=1)
+
+        # Quietly ignore malformed lines (per spec)
+        if len(columns) != 2:
+            borkedlines += 1
+            continue
+
+        path, locations = columns[0], columns[1]
+
+        # Ignore optional header (per spec)
         if lineno == 1 and path == 'FILE' and locations == 'LOCATION':
             continue
-        # We don't care about area/section names
-        debs = [name.rsplit('/', 1)[-1] for name in locations.split(',')]
-        for deb in debs:
+
+        # Packages may be qualified with area/section names
+        qdebs = [longname.split('/') for longname in locations.split(',')]
+        max_qualifier_depth = max([len(qdeb) for qdeb in qdebs])
+
+        # Ignore line with too many slashes in a qualified name (per spec)
+        if max_qualifier_depth > 3:
+            borkedlines += 1
+            continue
+
+        # Now we're sure everything's fine
+        for qdeb in qdebs:
+            deb = qdeb[-1]
             debcounter[deb] = debcounter.get(deb, 0) + 1
 
 
