@@ -14,9 +14,11 @@ from myaptlib import DEBIndex, URLError, HTTPError
 
 def print_score_table(score_board):
     """Take a list of (place, deb, score) tupples and print them out in columns"""
-    # TODO: proper column spacing
+    maxdigits = len(str(score_board[-1][0]))
+    max_deb_length = max([len(row[1]) for row in score_board])
+    formatstring = '{{:{}}}. {{:{}}} {{}}'.format(maxdigits, max_deb_length)
     for place, deb, score in score_board:
-        print("{}. {}\t\t\t{}".format(place, deb, score))
+        print(formatstring.format(place, deb, score))
 
 
 def run():
