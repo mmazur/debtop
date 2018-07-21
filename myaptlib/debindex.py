@@ -1,3 +1,4 @@
+# pylint: disable=missing-docstring
 import urllib.request
 import shutil
 import gzip
@@ -5,14 +6,13 @@ import os.path
 
 
 class DEBIndex:
+    """Fetch, parse and summarize a remote deb index file"""
+    # pylint: disable=too-few-public-methods
     def __init__(self, arch, baseurl='http://ftp.uk.debian.org/debian/dists/stable/main/'):
         self._arch = arch
-        # baseurl and basename are used per convention, but it's confusing
-        # if you think about it :)
-        self._baseurl = baseurl
-        self._basename = 'Contents-{}.gz'.format(arch)
-        self._fullurl = baseurl + self._basename
-        self._localpath = '.cache/' + self._basename
+        basename = 'Contents-{}.gz'.format(arch)
+        self._fullurl = baseurl + basename
+        self._localpath = '.cache/' + basename
         self._debcounter = {}
         self._scoreboard = {}
         self._nonconforming_lines = 0
@@ -23,19 +23,22 @@ class DEBIndex:
 
 
     def _fetch_index(self):
+        """Fetch a remote index file and store it locally (if it's not already present)"""
         # TODO: compare file size and timestamp
         if not os.path.isfile(self._localpath):
+            # TODO: exception handling
             with urllib.request.urlopen(self._fullurl) as response:
-                with open(self._localpath, 'wb') as f:
-                    shutil.copyfileobj(response, f)
+                with open(self._localpath, 'wb') as local_file:
+                    shutil.copyfileobj(response, local_file)
 
 
     def _parse_index(self):
-        with gzip.open(self._localpath, 'rt') as f:
+        """Parse local index file, compute file counts for each deb"""
+        with gzip.open(self._localpath, 'rt') as index_file:
             borkedlines = 0
             debcounter = {}
 
-            for lineno, line in enumerate(f, start=1):
+            for lineno, line in enumerate(index_file, start=1):
                 columns = line.strip().rsplit(maxsplit=1)
 
                 # Quietly ignore malformed lines (per spec)
@@ -68,6 +71,7 @@ class DEBIndex:
 
 
     def _compute_scoreboard(self):
+        """Compute a dict of file counts, with a list of debs linked to each"""
         scoreboard = {}
 
         for deb, counter in self._debcounter.items():
@@ -78,17 +82,19 @@ class DEBIndex:
         self._scoreboard = scoreboard
 
 
-    def get_top_packages(self, topN=10):
+    def get_top_packages(self, max_place=10):
+        """Return a sorted list of (place, deb, fileno) tupples where place <= max_place
+
+        Note: returned list might be longer than max_place entries when ties are present"""
         scoreboard = self._scoreboard
         final_standings = []
 
-        for score in sorted(scoreboard.keys(), reverse=True)[:topN]:
+        for score in sorted(scoreboard.keys(), reverse=True)[:max_place]:
             place = len(final_standings)+1
-            if place > topN:
+            if place > max_place:
                 break
             debs = sorted(scoreboard[score])
             for deb in debs:
                 final_standings.append((place, deb, score))
 
         return final_standings
-

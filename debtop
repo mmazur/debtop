@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=missing-docstring,wrong-import-position
 
 import sys
 import os.path
@@ -10,6 +11,8 @@ from myaptlib import DEBIndex
 
 
 def print_score_table(score_board):
+    """Take a list of (place, deb, score) tupples and print them out in columns"""
+    # TODO: proper column spacing
     for place, deb, score in score_board:
         print("{}. {}\t\t\t{}".format(place, deb, score))
 
@@ -28,4 +31,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-
