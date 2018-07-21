@@ -1,8 +1,10 @@
 # pylint: disable=missing-docstring
-import urllib.request
 import shutil
 import gzip
 import os.path
+
+import urllib.request
+from urllib.error import URLError, HTTPError # pylint: disable=unused-import
 
 
 class DEBIndex:
@@ -23,10 +25,13 @@ class DEBIndex:
 
 
     def _fetch_index(self):
-        """Fetch a remote index file and store it locally (if it's not already present)"""
+        """Fetch a remote index file and store it locally (if it's not already present)
+
+        Common exceptions: URLError, HTTPError if there's an issue with fetching the index"""
         # TODO: compare file size and timestamp
         if not os.path.isfile(self._localpath):
-            # TODO: exception handling
+            # Don't try to intercept any exceptions; let the code using this class deal
+            # with them if it so wishes
             with urllib.request.urlopen(self._fullurl) as response:
                 with open(self._localpath, 'wb') as local_file:
                     shutil.copyfileobj(response, local_file)

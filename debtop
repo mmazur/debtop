@@ -3,11 +3,13 @@
 
 import sys
 import os.path
+import logging
+from logging import error
 
 MODDIR = os.path.dirname(__file__)
 sys.path.insert(0, MODDIR)
 
-from myaptlib import DEBIndex
+from myaptlib import DEBIndex, URLError, HTTPError
 
 
 def print_score_table(score_board):
@@ -18,13 +20,25 @@ def print_score_table(score_board):
 
 
 def run():
+    log_format = '%(message)s'
+    logging.basicConfig(format=log_format)
+
     if len(sys.argv) != 2:
-        print("Missing architecture. Please provide.")
-        print("Usage: {} ARCH".format(sys.argv[0]))
+        error("Missing architecture. Please provide.")
+        error("Usage: {} ARCH".format(sys.argv[0]))
         sys.exit(1)
 
     arch = sys.argv[1]
-    debindex = DEBIndex(arch)
+
+    try:
+        debindex = DEBIndex(arch)
+    except (URLError, HTTPError) as err:
+        error("Couldn't fetch the index, aborting. Non-existent arch maybe? Wrong url? {}".format(err))
+        sys.exit(1)
+    except Exception as err: # pylint: disable=broad-except
+        error("Something unusual happend, giving up: {}".format(err))
+        sys.exit(1)
+
     top_debs = debindex.get_top_packages()
     print_score_table(top_debs)
 
