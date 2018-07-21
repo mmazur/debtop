@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+TOP = 10
+
+
+debcounter = {}
+scoreboard = {}
+
+
+#parse
+with open(".cache/Contents-amd64") as f:
+    for lineno, line in enumerate(f, start=1):
+        path, locations = line.strip().rsplit(maxsplit=1)
+        # ignore optional header
+        if lineno == 1 and path == 'FILE' and locations == 'LOCATION':
+            continue
+        # We don't care about area/section names
+        debs = [name.rsplit('/', 1)[-1] for name in locations.split(',')]
+        for deb in debs:
+            debcounter[deb] = debcounter.get(deb, 0) + 1
+
+
+#get top
+for deb, counter in debcounter.items():
+    if counter not in scoreboard:
+        scoreboard[counter] = []
+    scoreboard[counter].append(deb)
+
+topdebs = []
+for score in sorted(scoreboard.keys(), reverse=True)[:TOP]:
+    place = len(topdebs)+1
+    if place > TOP:
+        break
+    debs = sorted(scoreboard[score])
+    for deb in debs:
+        topdebs.append((place, deb, score))
+
+#print
+for place, deb, score in topdebs:
+    print("{}. {}\t\t\t{}".format(place, deb, score))
+
+
