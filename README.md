@@ -1,2 +1,6 @@
 # debtop
-And the winner is…
+
+Show top 10 for amd64
+
+    ./debtop ARCH
+
