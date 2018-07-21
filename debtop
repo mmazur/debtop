@@ -1,14 +1,40 @@
 #!/usr/bin/env python3
 
 TOP = 10
+baseurl = 'http://ftp.uk.debian.org/debian/dists/stable/main/'
+
+
+
+
+import urllib.request
+import shutil
+import gzip
+import sys
+import os.path
+
+
+if len(sys.argv) != 2:
+    print("Missing architecture. Please provide.")
+    print("Usage: {} ARCH".format(sys.argv[0]))
+    sys.exit(1)
+
+arch = sys.argv[1]
+basename = 'Contents-{}.gz'.format(arch)
+localpath = '.cache/'+basename
+
+# TODO: compare file size and timestamp
+if not os.path.isfile(localpath):
+    with urllib.request.urlopen(baseurl+basename) as response:
+        with open(localpath, 'wb') as f:
+            shutil.copyfileobj(response, f)
+
 
 
 debcounter = {}
 scoreboard = {}
 
-
 #parse
-with open(".cache/Contents-amd64") as f:
+with gzip.open(localpath, 'rt') as f:
     borkedlines = 0
     for lineno, line in enumerate(f, start=1):
         columns = line.strip().rsplit(maxsplit=1)
