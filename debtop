@@ -1,87 +1,31 @@
 #!/usr/bin/env python3
 
-TOP = 10
-baseurl = 'http://ftp.uk.debian.org/debian/dists/stable/main/'
-
-
-
-
-import urllib.request
-import shutil
-import gzip
 import sys
 import os.path
 
+MODDIR = os.path.dirname(__file__)
+sys.path.insert(0, MODDIR)
 
-if len(sys.argv) != 2:
-    print("Missing architecture. Please provide.")
-    print("Usage: {} ARCH".format(sys.argv[0]))
-    sys.exit(1)
-
-arch = sys.argv[1]
-basename = 'Contents-{}.gz'.format(arch)
-localpath = '.cache/'+basename
-
-# TODO: compare file size and timestamp
-if not os.path.isfile(localpath):
-    with urllib.request.urlopen(baseurl+basename) as response:
-        with open(localpath, 'wb') as f:
-            shutil.copyfileobj(response, f)
+from myaptlib import DEBIndex
 
 
-
-debcounter = {}
-scoreboard = {}
-
-#parse
-with gzip.open(localpath, 'rt') as f:
-    borkedlines = 0
-    for lineno, line in enumerate(f, start=1):
-        columns = line.strip().rsplit(maxsplit=1)
-
-        # Quietly ignore malformed lines (per spec)
-        if len(columns) != 2:
-            borkedlines += 1
-            continue
-
-        path, locations = columns[0], columns[1]
-
-        # Ignore optional header (per spec)
-        if lineno == 1 and path == 'FILE' and locations == 'LOCATION':
-            continue
-
-        # Packages may be qualified with area/section names
-        qdebs = [longname.split('/') for longname in locations.split(',')]
-        max_qualifier_depth = max([len(qdeb) for qdeb in qdebs])
-
-        # Ignore line with too many slashes in a qualified name (per spec)
-        if max_qualifier_depth > 3:
-            borkedlines += 1
-            continue
-
-        # Now we're sure everything's fine
-        for qdeb in qdebs:
-            deb = qdeb[-1]
-            debcounter[deb] = debcounter.get(deb, 0) + 1
+def print_score_table(score_board):
+    for place, deb, score in score_board:
+        print("{}. {}\t\t\t{}".format(place, deb, score))
 
 
-#get top
-for deb, counter in debcounter.items():
-    if counter not in scoreboard:
-        scoreboard[counter] = []
-    scoreboard[counter].append(deb)
+def run():
+    if len(sys.argv) != 2:
+        print("Missing architecture. Please provide.")
+        print("Usage: {} ARCH".format(sys.argv[0]))
+        sys.exit(1)
 
-topdebs = []
-for score in sorted(scoreboard.keys(), reverse=True)[:TOP]:
-    place = len(topdebs)+1
-    if place > TOP:
-        break
-    debs = sorted(scoreboard[score])
-    for deb in debs:
-        topdebs.append((place, deb, score))
+    arch = sys.argv[1]
+    debindex = DEBIndex(arch)
+    top_debs = debindex.get_top_packages()
+    print_score_table(top_debs)
 
-#print
-for place, deb, score in topdebs:
-    print("{}. {}\t\t\t{}".format(place, deb, score))
 
+if __name__ == '__main__':
+    run()
 
